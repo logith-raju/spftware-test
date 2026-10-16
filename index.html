@@ -1,0 +1,1369 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Endless Dodge 2.0 — Neon Edition</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #03040c;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 10px;
+}
+
+h1 {
+  margin: 3px 0 5px;
+  font-size: clamp(25px, 5vw, 42px);
+  color: #00f5ff;
+  text-shadow: 0 0 10px #00f5ff, 0 0 30px #006aff;
+  text-align: center;
+}
+
+.subtitle {
+  color: #a6b3d9;
+  margin: 0 0 14px;
+  text-align: center;
+  font-size: 13px;
+}
+
+#gameWrap {
+  width: min(960px, 100%);
+  position: relative;
+  border: 2px solid #00d9ff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 18px #0077ff77, 0 0 40px #00f5ff22;
+  background: #03040c;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+
+#hud {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  pointer-events: none;
+  font-size: 13px;
+  text-shadow: 0 2px 5px #000;
+}
+
+.hudGroup {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+#message {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  text-align: center;
+  pointer-events: none;
+  text-shadow: 0 0 12px #00d9ff;
+}
+
+#message h2 {
+  font-size: clamp(23px, 5vw, 40px);
+  color: #00f5ff;
+  margin: 0 0 8px;
+}
+
+#message p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #dbeaff;
+}
+
+.panel {
+  width: min(960px, 100%);
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #29385e;
+  border-radius: 12px;
+  background: #090d1b;
+}
+
+.sectionTitle {
+  color: #91a9ff;
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-align: center;
+  margin-bottom: 9px;
+}
+
+.modes, .actions, .mobileControls {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+button {
+  color: white;
+  background: #111a31;
+  border: 1px solid #33496f;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s, background .15s;
+  touch-action: manipulation;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 12px #00d9ff66;
+}
+
+button:active { transform: scale(.97); }
+
+button.selected {
+  border-color: #00f5ff;
+  background: #073047;
+  box-shadow: 0 0 12px #00f5ff55;
+}
+
+#easy { color: #00f5ff; }
+#hard { color: #ffbf40; }
+#impossible { color: #ff526e; }
+#hacker { color: #00ff83; }
+#formula { color: #c3a2ff; }
+#thought { color: #ff8cdb; }
+
+.primary {
+  background: #063e50;
+  border-color: #00f5ff;
+  color: #fff;
+}
+
+.help {
+  width: min(960px, 100%);
+  color: #aab6d2;
+  font-size: 12px;
+  text-align: center;
+  line-height: 1.8;
+  padding: 12px 5px;
+}
+
+.mobileControls button {
+  min-width: 65px;
+  font-size: 20px;
+  padding: 12px 18px;
+}
+
+@media (min-width: 800px) {
+  .mobileControls { display: none; }
+}
+</style>
+</head>
+
+<body>
+
+<h1>ENDLESS DODGE 2.0</h1>
+<p class="subtitle">NEON SURVIVAL • SIX MODES • INFINITE CHALLENGE</p>
+
+<div id="gameWrap">
+  <canvas id="game" width="960" height="540"></canvas>
+
+  <div id="hud">
+    <div class="hudGroup">
+      <span id="modeLabel">MODE: EASY</span>
+      <span id="scoreLabel">SCORE: 0</span>
+      <span id="livesLabel">LIVES: 3</span>
+    </div>
+    <div class="hudGroup">
+      <span id="powerLabel">POWER: NONE</span>
+      <span id="highLabel">BEST: 0</span>
+    </div>
+  </div>
+
+  <div id="message">
+    <h2>READY TO DODGE?</h2>
+    <p>Choose a mode below, then press START.<br>
+    Move with A/D or arrow keys • Jump with SPACE</p>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="sectionTitle">SELECT YOUR MODE</div>
+  <div class="modes">
+    <button id="easy" data-mode="Easy" class="selected">EASY</button>
+    <button id="hard" data-mode="Hard">HARD</button>
+    <button id="impossible" data-mode="Impossible">IMPOSSIBLE</button>
+    <button id="hacker" data-mode="Hacker">HACKER</button>
+    <button id="formula" data-mode="Formula">FORMULA</button>
+    <button id="thought" data-mode="Thought">THOUGHT</button>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="actions">
+    <button class="primary" id="startBtn">▶ START / RESTART</button>
+    <button id="pauseBtn">Ⅱ PAUSE</button>
+  </div>
+</div>
+
+<div class="panel mobileControls">
+  <div class="sectionTitle">MOBILE CONTROLS</div>
+  <div class="mobileControls">
+    <button id="leftBtn">◀</button>
+    <button id="jumpBtn">▲</button>
+    <button id="rightBtn">▶</button>
+  </div>
+</div>
+
+<div class="help">
+  A / D or ← / →: Move &nbsp; • &nbsp; SPACE / ↑: Jump
+  &nbsp; • &nbsp; P: Pause &nbsp; • &nbsp; R: Restart<br>
+  Collect power-ups, avoid the red killer blocks, and beat your high score.
+</div>
+
+<script>
+"use strict";
+
+// ======================================================
+// ENDLESS DODGE 2.0 — COMPLETE GAME
+// ======================================================
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const W = canvas.width;
+const H = canvas.height;
+const groundY = 455;
+
+const $ = id => document.getElementById(id);
+
+const configs = {
+  Easy: {
+    speed: 260, acceleration: 8, spawn: 1.45,
+    gravity: 1650, jump: 680, lives: 3,
+    color: "#00f5ff", airBlocks: false
+  },
+  Hard: {
+    speed: 370, acceleration: 18, spawn: .95,
+    gravity: 1800, jump: 700, lives: 3,
+    color: "#ffb000", airBlocks: false
+  },
+  Impossible: {
+    speed: 490, acceleration: 35, spawn: .62,
+    gravity: 1950, jump: 715, lives: 2,
+    color: "#ff315d", airBlocks: false
+  },
+  Hacker: {
+    speed: 350, acceleration: 0, spawn: 1.05,
+    gravity: 1550, jump: 690, lives: 3,
+    color: "#00ff83", airBlocks: true
+  },
+  Formula: {
+    speed: 320, acceleration: 8, spawn: 1.15,
+    gravity: 1700, jump: 690, lives: 3,
+    color: "#b68cff", airBlocks: false
+  },
+  Thought: {
+    speed: 310, acceleration: 7, spawn: 1.25,
+    gravity: 1700, jump: 690, lives: 3,
+    color: "#ff76cf", airBlocks: false
+  }
+};
+
+const formulas = [
+  "E = mc²", "F = ma", "V = IR", "P = VI",
+  "a² + b² = c²", "v = u + at",
+  "s = ut + ½at²", "F = Gm₁m₂/r²",
+  "KE = ½mv²", "W = Fs cos θ",
+  "sin²θ + cos²θ = 1", "x = (-b ± √D)/2a",
+  "D = b² - 4ac", "A = πr²",
+  "v = fλ", "Q = It", "P = W/t",
+  "I = Q/t", "ρ = m/V", "PV = nRT",
+  "Momentum = mv", "Force = Δp/Δt",
+  "Energy is conserved", "Current = Voltage / Resistance",
+  "Derivative = Rate of change", "aₙ = a + (n-1)d"
+];
+
+const thoughts = [
+  "KEEP MOVING FORWARD",
+  "EVERY TRY MAKES YOU STRONGER",
+  "FOCUS ON THE NEXT STEP",
+  "NEVER STOP LEARNING",
+  "SMALL STEPS CREATE BIG RESULTS",
+  "YOUR IDEAS CAN CHANGE THE WORLD",
+  "PATIENCE BUILDS PROGRESS",
+  "TURN MISTAKES INTO LESSONS",
+  "Hard work is the key that opens every door",
+  "thinking is different but goal is same",
+  "Your attitude, not your aptitude, will determine your altitude",
+  "BE BRAVE ENOUGH TO TRY",
+  "break your limiterbecome limitless",
+  "BUILD YOUR OWN FUTURE",
+  "ONE MORE TRY",
+  "KEEP YOUR MIND OPEN",
+  "PROGRESS TAKES TIME",
+  "DREAM IT. BUILD IT.",
+  "LEARN SOMETHING NEW",
+  "MAKE THIS MOMENT COUNT"
+];
+
+let mode = "Easy";
+let cfg = configs[mode];
+
+let running = false;
+let paused = false;
+let gameOver = false;
+
+let elapsed = 0;
+let score = 0;
+let lives = cfg.lives;
+let spawnTimer = 0;
+let powerTimer = 0;
+let invulnerable = 0;
+let shake = 0;
+let dayNight = 0;
+let lastTime = 0;
+let worldSpeed = cfg.speed;
+
+let obstacles = [];
+let powerups = [];
+let particles = [];
+let stars = [];
+let keys = {};
+let mobileLeft = false;
+let mobileRight = false;
+
+const player = {
+  x: 115, y: groundY - 34,
+  w: 34, h: 34,
+  vx: 0, vy: 0,
+  onGround: true,
+  jumpsLeft: 1,
+  shield: 0,
+  slow: 0,
+  boost: 0,
+  superJump: 0
+};
+
+let bestScores = {};
+try {
+  bestScores = JSON.parse(localStorage.getItem("endlessDodgeBests") || "{}");
+} catch (_) {
+  bestScores = {};
+}
+
+function saveBest() {
+  try {
+    localStorage.setItem("endlessDodgeBests", JSON.stringify(bestScores));
+  } catch (_) {}
+}
+
+function currentBest() {
+  return bestScores[mode] || 0;
+}
+
+function selectMode(newMode) {
+  if (!configs[newMode]) return;
+
+  mode = newMode;
+  cfg = configs[mode];
+
+  document.querySelectorAll("[data-mode]").forEach(button => {
+    button.classList.toggle("selected", button.dataset.mode === mode);
+  });
+
+  $("modeLabel").textContent = "MODE: " + mode.toUpperCase();
+  $("highLabel").textContent = "BEST: " + currentBest();
+
+  if (!running) showReadyMessage();
+  draw();
+}
+
+function showReadyMessage() {
+  $("message").style.display = "block";
+  $("message").innerHTML =
+    "<h2>ENDLESS DODGE</h2>" +
+    "<p>" + mode.toUpperCase() + " MODE<br>" +
+    "Press START to play!<br>" +
+    "Move: A/D or ←/→ • Jump: SPACE / ↑</p>";
+}
+
+document.querySelectorAll("[data-mode]").forEach(button => {
+  button.addEventListener("click", () => selectMode(button.dataset.mode));
+});
+
+// ======================================================
+// INITIAL BACKGROUND
+// ======================================================
+
+for (let i = 0; i < 120; i++) {
+  stars.push({
+    x: Math.random() * W,
+    y: Math.random() * H,
+    r: Math.random() * 1.8 + .3,
+    speed: Math.random() * 22 + 8,
+    alpha: Math.random() * .6 + .2
+  });
+}
+
+function resetGame() {
+  cfg = configs[mode];
+  running = true;
+  paused = false;
+  gameOver = false;
+
+  elapsed = 0;
+  score = 0;
+  lives = cfg.lives;
+  spawnTimer = .5;
+  powerTimer = 4;
+  invulnerable = 0;
+  shake = 0;
+  dayNight = 0;
+  worldSpeed = cfg.speed;
+
+  obstacles = [];
+  powerups = [];
+  particles = [];
+
+  player.x = 115;
+  player.y = groundY - player.h;
+  player.vx = 0;
+  player.vy = 0;
+  player.onGround = true;
+  player.jumpsLeft = 1;
+  player.shield = 0;
+  player.slow = 0;
+  player.boost = 0;
+  player.superJump = 0;
+
+  $("message").style.display = "none";
+  $("pauseBtn").textContent = "Ⅱ PAUSE";
+
+  updateHUD();
+}
+
+function endGame() {
+  running = false;
+  gameOver = true;
+  paused = false;
+
+  if (score > currentBest()) {
+    bestScores[mode] = score;
+    saveBest();
+  }
+
+  $("highLabel").textContent = "BEST: " + currentBest();
+  $("message").style.display = "block";
+  $("message").innerHTML =
+    "<h2 style='color:#ff315d'>GAME OVER</h2>" +
+    "<p>Score: " + Math.floor(score) +
+    "<br>Best: " + currentBest() +
+    "<br>Press START or R to try again!</p>";
+
+  updateHUD();
+}
+
+function togglePause() {
+  if (!running || gameOver) return;
+
+  paused = !paused;
+  $("pauseBtn").textContent = paused ? "▶ RESUME" : "Ⅱ PAUSE";
+
+  if (paused) {
+    $("message").style.display = "block";
+    $("message").innerHTML =
+      "<h2>PAUSED</h2><p>Press P or RESUME to continue.</p>";
+  } else {
+    $("message").style.display = "none";
+  }
+}
+
+$("startBtn").addEventListener("click", resetGame);
+$("pauseBtn").addEventListener("click", togglePause);
+
+// ======================================================
+// PLAYER MOVEMENT AND JUMPING
+// ======================================================
+
+function jump() {
+  if (!running || paused || gameOver) return;
+
+  if (mode === "Hacker") {
+    player.vy = -cfg.jump;
+    player.onGround = false;
+    player.jumpsLeft = Infinity;
+
+    burst(
+      player.x + player.w / 2,
+      player.y + player.h,
+      10,
+      "#00ff83"
+    );
+    return;
+  }
+
+  const maxJumps = player.superJump > 0 ? 2 : 1;
+
+  if (player.onGround) {
+    player.vy = -(player.superJump > 0 ? cfg.jump * 1.35 : cfg.jump);
+    player.onGround = false;
+    player.jumpsLeft = maxJumps - 1;
+
+    burst(player.x + player.w / 2, player.y + player.h, 8, cfg.color);
+  } else if (player.jumpsLeft > 0) {
+    player.vy = -cfg.jump * .9;
+    player.jumpsLeft--;
+
+    burst(player.x + player.w / 2, player.y + player.h, 8, cfg.color);
+  }
+}
+
+document.addEventListener("keydown", event => {
+  const key = event.key.toLowerCase();
+
+  if ([" ", "arrowup", "arrowleft", "arrowright"].includes(key)) {
+    event.preventDefault();
+  }
+
+  keys[key] = true;
+
+  if (event.repeat) return;
+
+  if (key === " " || key === "arrowup" || key === "w") jump();
+  if (key === "p") togglePause();
+  if (key === "r") resetGame();
+
+  if ((key === "enter") && !running) resetGame();
+});
+
+document.addEventListener("keyup", event => {
+  keys[event.key.toLowerCase()] = false;
+});
+
+function bindHold(buttonId, onStart, onEnd) {
+  const button = $(buttonId);
+
+  button.addEventListener("pointerdown", event => {
+    event.preventDefault();
+    onStart();
+  });
+
+  ["pointerup", "pointercancel", "pointerleave"].forEach(type => {
+    button.addEventListener(type, onEnd);
+  });
+}
+
+bindHold("leftBtn", () => mobileLeft = true, () => mobileLeft = false);
+bindHold("rightBtn", () => mobileRight = true, () => mobileRight = false);
+
+$("jumpBtn").addEventListener("pointerdown", event => {
+  event.preventDefault();
+  jump();
+});
+
+// ======================================================
+// OBSTACLES AND POWER-UPS
+// ======================================================
+
+function spawnObstacle() {
+  const w = 32 + Math.random() * 22;
+  const h = 38 + Math.random() * 34;
+
+  let y = groundY - h;
+
+  // Airborne killer blocks are exclusive to Hacker Mode.
+  if (mode === "Hacker" && Math.random() < .5) {
+    y = 215 + Math.random() * 150;
+  }
+
+  obstacles.push({
+    x: W + 30,
+    y,
+    w,
+    h,
+    pulse: Math.random() * Math.PI * 2,
+    rotation: Math.random() * 6
+  });
+}
+
+function spawnPowerup() {
+  const types = ["shield", "slow", "boost", "superJump"];
+  const type = types[Math.floor(Math.random() * types.length)];
+
+  powerups.push({
+    x: W + 25,
+    y: groundY - 90 - Math.random() * 125,
+    w: 28,
+    h: 28,
+    type,
+    phase: Math.random() * Math.PI * 2
+  });
+}
+
+function activatePowerup(type) {
+  if (type === "shield") player.shield = 7;
+  if (type === "slow") player.slow = 5;
+  if (type === "boost") player.boost = 7;
+  if (type === "superJump") player.superJump = 8;
+
+  const colors = {
+    shield: "#00f5ff",
+    slow: "#b68cff",
+    boost: "#ffe45c",
+    superJump: "#00ff83"
+  };
+
+  burst(
+    player.x + player.w / 2,
+    player.y + player.h / 2,
+    24,
+    colors[type]
+  );
+}
+
+function hitPlayer() {
+  if (invulnerable > 0) return;
+
+  if (player.shield > 0) {
+    player.shield = 0;
+    invulnerable = .5;
+    burst(player.x + player.w / 2, player.y + player.h / 2, 20, "#00f5ff");
+    return;
+  }
+
+  lives--;
+  invulnerable = 1.25;
+  shake = .3;
+
+  burst(player.x + player.w / 2, player.y + player.h / 2, 22, "#ff315d");
+
+  if (lives <= 0) endGame();
+}
+
+function overlaps(a, b) {
+  const insetA = 5;
+  const insetB = 4;
+
+  return (
+    a.x + insetA < b.x + b.w - insetB &&
+    a.x + a.w - insetA > b.x + insetB &&
+    a.y + insetA < b.y + b.h - insetB &&
+    a.y + a.h - insetA > b.y + insetB
+  );
+}
+
+// ======================================================
+// PARTICLES
+// ======================================================
+
+function burst(x, y, amount, color) {
+  for (let i = 0; i < amount; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 40 + Math.random() * 230;
+
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: .35 + Math.random() * .65,
+      maxLife: .9,
+      size: 2 + Math.random() * 4,
+      color
+    });
+  }
+}
+
+function updateParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += 120 * dt;
+    p.life -= dt;
+
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function drawParticles() {
+  for (const p of particles) {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 12;
+
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ======================================================
+// BACKGROUND: SPACE, NEBULA, STARS AND PERSPECTIVE GRID
+// ======================================================
+
+function drawBackground(dt) {
+  const cycle = (Math.sin(dayNight) + 1) / 2;
+
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+
+  if (mode === "Formula") {
+    bg.addColorStop(0, "#100922");
+    bg.addColorStop(1, "#03040d");
+  } else if (mode === "Thought") {
+    bg.addColorStop(0, "#19091d");
+    bg.addColorStop(1, "#05040d");
+  } else {
+    bg.addColorStop(0, "#050a20");
+    bg.addColorStop(1, "#02030a");
+  }
+
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Nebula clouds
+  for (let i = 0; i < 5; i++) {
+    const x = (i * 235 + elapsed * (5 + i)) % (W + 200) - 100;
+    const y = 70 + i * 60 + Math.sin(elapsed * .25 + i) * 25;
+    const radius = 110 + i * 15;
+
+    const color = mode === "Thought" ? "255,70,210"
+      : mode === "Formula" ? "160,90,255"
+      : mode === "Hacker" ? "0,255,130"
+      : "0,120,255";
+
+    const glow = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    glow.addColorStop(0, `rgba(${color},0.12)`);
+    glow.addColorStop(1, `rgba(${color},0)`);
+
+    ctx.fillStyle = glow;
+    ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  }
+
+  // Star field
+  for (const star of stars) {
+    if (running && !paused) {
+      star.x -= star.speed * dt * (player.slow > 0 ? .5 : 1);
+      if (star.x < 0) {
+        star.x = W;
+        star.y = Math.random() * H;
+      }
+    }
+
+    ctx.globalAlpha = star.alpha;
+    ctx.fillStyle = "#dceaff";
+    ctx.fillRect(star.x, star.y, star.r, star.r);
+  }
+  ctx.globalAlpha = 1;
+
+  // Distant moving horizontal lines
+  ctx.strokeStyle = "rgba(70,130,255,0.08)";
+  ctx.lineWidth = 1;
+
+  for (let y = 90; y < groundY; y += 55) {
+    const offset = (elapsed * 18) % 55;
+    ctx.beginPath();
+    ctx.moveTo(0, y + offset);
+    ctx.lineTo(W, y + offset);
+    ctx.stroke();
+  }
+
+  // Perspective floor grid
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, groundY, W, H - groundY);
+  ctx.clip();
+
+  ctx.strokeStyle = mode === "Thought"
+    ? "rgba(255,100,220,.25)"
+    : mode === "Formula"
+      ? "rgba(170,100,255,.28)"
+      : "rgba(0,180,255,.25)";
+
+  ctx.lineWidth = 1;
+
+  const shift = (elapsed * 95) % 45;
+
+  for (let x = -W; x <= W * 2; x += 65) {
+    ctx.beginPath();
+    ctx.moveTo(W / 2 + (x - W / 2) * .12, groundY);
+    ctx.lineTo(x, H);
+    ctx.stroke();
+  }
+
+  for (let y = groundY + shift; y < H; y += 22) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+
+  // Ground edge glow
+  ctx.save();
+  ctx.strokeStyle = cfg.color;
+  ctx.shadowColor = cfg.color;
+  ctx.shadowBlur = 16;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(0, groundY);
+  ctx.lineTo(W, groundY);
+  ctx.stroke();
+  ctx.restore();
+
+  // Keep the formula/thought credits over the space background.
+  drawFloatingText();
+}
+
+// ======================================================
+// SCATTERED FORMULAS AND THOUGHTS
+// Horizontal straight rows with staggered positions.
+// They scroll upward like movie ending credits.
+// ======================================================
+
+function drawFloatingText() {
+  if (mode !== "Formula" && mode !== "Thought") return;
+
+  const items = mode === "Formula" ? formulas : thoughts;
+  const color = mode === "Formula" ? "#b68cff" : "#ff76cf";
+
+  ctx.save();
+  ctx.font = "bold 18px monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  const rowGap = 100;
+  const colGap = 265;
+  const scrollSpeed = 32;
+
+  // Each row remains perfectly horizontal.
+  for (let row = 0; row < 7; row++) {
+    const y = (
+      row * rowGap + elapsed * scrollSpeed
+    ) % (H + rowGap) - rowGap;
+
+    // Alternating offsets make the words look scattered.
+    const stagger = row % 2 === 0 ? 0 : colGap / 2;
+
+    for (let col = -1; col < 5; col++) {
+      const x = col * colGap + stagger + 120;
+
+      if (x < -180 || x > W + 180) continue;
+
+      const index = (
+        row * 3 + col + items.length * 5
+      ) % items.length;
+
+      const text = items[index];
+
+      // Soft fading near the top and bottom.
+      const edgeFade = Math.min(
+        1,
+        Math.max(0, (y + 20) / 45),
+        Math.max(0, (H - y) / 45)
+      );
+
+      ctx.globalAlpha = (.20 + (row % 3) * .07) * edgeFade;
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 8;
+      ctx.fillText(text, x, y);
+    }
+  }
+
+  ctx.restore();
+}
+
+// ======================================================
+// PLAYER: GLOSSY NEON ORB
+// ======================================================
+
+function drawPlayer() {
+  if (invulnerable > 0 && Math.floor(elapsed * 15) % 2 === 0) {
+    return;
+  }
+
+  const cx = player.x + player.w / 2;
+  const cy = player.y + player.h / 2;
+  const r = player.w / 2;
+
+  ctx.save();
+
+  // Shield ring
+  if (player.shield > 0) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 12 + Math.sin(elapsed * 9) * 2, 0, Math.PI * 2);
+    ctx.strokeStyle = "#00f5ff";
+    ctx.lineWidth = 3;
+    ctx.shadowColor = "#00f5ff";
+    ctx.shadowBlur = 20;
+    ctx.stroke();
+  }
+
+  // Outer glow
+  ctx.globalAlpha = .35;
+  ctx.fillStyle = cfg.color;
+  ctx.shadowColor = cfg.color;
+  ctx.shadowBlur = 28;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.globalAlpha = 1;
+
+  // Orb gradient
+  const gradient = ctx.createRadialGradient(
+    cx - r * .35, cy - r * .4, 2,
+    cx, cy, r
+  );
+
+  gradient.addColorStop(0, "#ffffff");
+  gradient.addColorStop(.18, cfg.color);
+  gradient.addColorStop(.7, "#174e8b");
+  gradient.addColorStop(1, "#030718");
+
+  ctx.fillStyle = gradient;
+  ctx.shadowColor = cfg.color;
+  ctx.shadowBlur = 16;
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Highlight
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "rgba(255,255,255,.85)";
+  ctx.beginPath();
+  ctx.ellipse(cx - 6, cy - 7, 5, 3, -.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Orb outline
+  ctx.strokeStyle = "#ffffff";
+  ctx.globalAlpha = .65;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 1, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// ======================================================
+// KILLER BLOCKS: SPIKED METAL ENERGY BLADES
+// ======================================================
+
+function drawObstacles() {
+  for (const ob of obstacles) {
+    ctx.save();
+
+    const cx = ob.x + ob.w / 2;
+    const cy = ob.y + ob.h / 2;
+    const pulse = .8 + Math.sin(elapsed * 7 + ob.pulse) * .2;
+    const enemyColor = mode === "Hacker" ? "#ff1744" : "#ff315d";
+
+    // Red danger aura
+    ctx.globalAlpha = .24 * pulse;
+    ctx.fillStyle = enemyColor;
+    ctx.shadowColor = enemyColor;
+    ctx.shadowBlur = 28;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, ob.w * .85, ob.h * .8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+
+    // Jagged metal silhouette
+    const points = [
+      [ob.x + ob.w * .5, ob.y],
+      [ob.x + ob.w * .72, ob.y + ob.h * .2],
+      [ob.x + ob.w, ob.y + ob.h * .12],
+      [ob.x + ob.w * .83, ob.y + ob.h * .48],
+      [ob.x + ob.w, ob.y + ob.h * .82],
+      [ob.x + ob.w * .65, ob.y + ob.h * .78],
+      [ob.x + ob.w * .5, ob.y + ob.h],
+      [ob.x + ob.w * .32, ob.y + ob.h * .78],
+      [ob.x, ob.y + ob.h * .88],
+      [ob.x + ob.w * .16, ob.y + ob.h * .52],
+      [ob.x, ob.y + ob.h * .18],
+      [ob.x + ob.w * .34, ob.y + ob.h * .22]
+    ];
+
+    ctx.beginPath();
+    ctx.moveTo(points[0][0], points[0][1]);
+
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i][0], points[i][1]);
+    }
+
+    ctx.closePath();
+
+    const metal = ctx.createLinearGradient(
+      ob.x, ob.y, ob.x + ob.w, ob.y + ob.h
+    );
+
+    metal.addColorStop(0, "#737d91");
+    metal.addColorStop(.25, "#202536");
+    metal.addColorStop(.65, "#080a12");
+    metal.addColorStop(1, "#551020");
+
+    ctx.fillStyle = metal;
+    ctx.shadowColor = enemyColor;
+    ctx.shadowBlur = 17;
+    ctx.fill();
+
+    ctx.strokeStyle = enemyColor;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Spinning inner blade
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(elapsed * 2.7 + ob.pulse);
+
+    const radius = Math.min(ob.w, ob.h) * .28;
+
+    ctx.beginPath();
+
+    for (let i = 0; i < 8; i++) {
+      const angle = i * Math.PI / 4;
+      const r = i % 2 === 0 ? radius : radius * .43;
+      const x = Math.cos(angle) * r;
+      const y = Math.sin(angle) * r;
+
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+
+    ctx.closePath();
+    ctx.fillStyle = "#ff1744";
+    ctx.shadowColor = "#ff1744";
+    ctx.shadowBlur = 18;
+    ctx.fill();
+
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, Math.max(3, radius * .28), 0, Math.PI * 2);
+    ctx.fillStyle = "#090b14";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, Math.max(1.5, radius * .12), 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+
+    ctx.restore();
+
+    // Moving scan line
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(ob.x + 3, ob.y + 3, ob.w - 6, ob.h - 6);
+    ctx.clip();
+
+    const scanY = ob.y + (
+      (elapsed * 95 + ob.pulse * 12) % (ob.h + 10)
+    );
+
+    ctx.globalAlpha = .9;
+    ctx.fillStyle = enemyColor;
+    ctx.shadowColor = enemyColor;
+    ctx.shadowBlur = 12;
+    ctx.fillRect(ob.x, scanY, ob.w, 2);
+    ctx.restore();
+
+    // Hacker-only aerial energy trail
+    if (mode === "Hacker" && ob.y + ob.h < groundY - 1) {
+      ctx.globalAlpha = .45;
+      ctx.strokeStyle = "#ff1744";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 6]);
+      ctx.beginPath();
+      ctx.moveTo(cx, ob.y + ob.h);
+      ctx.lineTo(cx, groundY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    ctx.restore();
+  }
+}
+
+// ======================================================
+// POWER-UP VISUALS
+// ======================================================
+
+function powerColor(type) {
+  return {
+    shield: "#00f5ff",
+    slow: "#b68cff",
+    boost: "#ffe45c",
+    superJump: "#00ff83"
+  }[type] || "#ffffff";
+}
+
+function powerSymbol(type) {
+  return {
+    shield: "S",
+    slow: "T",
+    boost: "2X",
+    superJump: "J"
+  }[type] || "?";
+}
+
+function drawPowerups() {
+  for (const p of powerups) {
+    const cx = p.x + p.w / 2;
+    const cy = p.y + p.h / 2 + Math.sin(elapsed * 4 + p.phase) * 4;
+    const color = powerColor(p.type);
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(Math.sin(elapsed * 2 + p.phase) * .12);
+
+    ctx.fillStyle = "#0a1020";
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 16;
+
+    ctx.beginPath();
+    ctx.roundRect(-p.w / 2, -p.h / 2, p.w, p.h, 7);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = color;
+    ctx.font = "bold 12px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(powerSymbol(p.type), 0, 0);
+
+    ctx.restore();
+  }
+}
+
+// ======================================================
+// HUD
+// ======================================================
+
+function updateHUD() {
+  $("modeLabel").textContent = "MODE: " + mode.toUpperCase();
+  $("scoreLabel").textContent = "SCORE: " + Math.floor(score);
+  $("livesLabel").textContent = "LIVES: " + "♥ ".repeat(Math.max(0, lives)).trim();
+  $("highLabel").textContent = "BEST: " + currentBest();
+
+  const active = [];
+
+  if (player.shield > 0) active.push("SHIELD " + Math.ceil(player.shield));
+  if (player.slow > 0) active.push("SLOW " + Math.ceil(player.slow));
+  if (player.boost > 0) active.push("2X " + Math.ceil(player.boost));
+  if (player.superJump > 0) active.push("JUMP " + Math.ceil(player.superJump));
+
+  $("powerLabel").textContent = active.length ? active.join(" • ") : "POWER: NONE";
+}
+
+// ======================================================
+// MAIN UPDATE LOOP
+// ======================================================
+
+function update(dt) {
+  elapsed += dt;
+  updateParticles(dt);
+
+  if (!running || paused || gameOver) return;
+
+  const delta = Math.min(dt, .04);
+
+  if (mode === "Easy" || mode === "Hard" ||
+      mode === "Impossible" || mode === "Hacker") {
+    dayNight += delta * .12;
+  }
+
+  if (invulnerable > 0) invulnerable -= delta;
+  if (shake > 0) shake -= delta;
+
+  player.shield = Math.max(0, player.shield - delta);
+  player.slow = Math.max(0, player.slow - delta);
+  player.boost = Math.max(0, player.boost - delta);
+  player.superJump = Math.max(0, player.superJump - delta);
+
+  const slowFactor = player.slow > 0 ? .58 : 1;
+
+  // Hacker speed remains constant.
+  if (mode !== "Hacker") {
+    worldSpeed = cfg.speed + Math.min(110, score * .018);
+  } else {
+    worldSpeed = cfg.speed;
+  }
+
+  const left = keys["arrowleft"] || keys["a"] || mobileLeft;
+  const right = keys["arrowright"] || keys["d"] || mobileRight;
+
+  const direction = (right ? 1 : 0) - (left ? 1 : 0);
+  const moveSpeed = 340;
+
+  player.vx = direction * moveSpeed;
+  player.x += player.vx * delta;
+
+  player.x = Math.max(10, Math.min(W - player.w - 10, player.x));
+
+  // Gravity
+  player.vy += cfg.gravity * delta;
+  player.y += player.vy * delta;
+
+  if (player.y + player.h >= groundY) {
+    player.y = groundY - player.h;
+    player.vy = 0;
+
+    if (!player.onGround) {
+      burst(player.x + player.w / 2, groundY, 5, cfg.color);
+    }
+
+    player.onGround = true;
+    player.jumpsLeft = 1;
+  } else {
+    player.onGround = false;
+  }
+
+  // Obstacle spawning
+  spawnTimer -= delta;
+
+  const spawnInterval = Math.max(
+    .38,
+    cfg.spawn - Math.min(.3, score / 50000)
+  );
+
+  if (spawnTimer <= 0) {
+    spawnObstacle();
+    spawnTimer = spawnInterval * (.75 + Math.random() * .55);
+  }
+
+  // Power-up spawning
+  powerTimer -= delta;
+
+  if (powerTimer <= 0) {
+    spawnPowerup();
+    powerTimer = 7 + Math.random() * 6;
+  }
+
+  // Move obstacles
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const ob = obstacles[i];
+
+    ob.x -= worldSpeed * slowFactor * delta;
+
+    if (overlaps(player, ob)) {
+      hitPlayer();
+      obstacles.splice(i, 1);
+      continue;
+    }
+
+    if (ob.x + ob.w < 0) {
+      obstacles.splice(i, 1);
+    }
+  }
+
+  // Move and collect power-ups
+  for (let i = powerups.length - 1; i >= 0; i--) {
+    const p = powerups[i];
+
+    p.x -= worldSpeed * slowFactor * delta;
+
+    const hitbox = {
+      x: p.x,
+      y: p.y + Math.sin(elapsed * 4 + p.phase) * 4,
+      w: p.w,
+      h: p.h
+    };
+
+    if (overlaps(player, hitbox)) {
+      activatePowerup(p.type);
+      powerups.splice(i, 1);
+      continue;
+    }
+
+    if (p.x + p.w < 0) powerups.splice(i, 1);
+  }
+
+  // Score
+  score += delta * 10 * (player.boost > 0 ? 2 : 1);
+
+  if (score > currentBest()) {
+    bestScores[mode] = Math.floor(score);
+    $("highLabel").textContent = "BEST: " + currentBest();
+    saveBest();
+  }
+
+  updateHUD();
+}
+
+// ======================================================
+// DRAW FRAME
+// ======================================================
+
+function draw() {
+  ctx.save();
+
+  if (shake > 0) {
+    ctx.translate(
+      (Math.random() - .5) * 12,
+      (Math.random() - .5) * 8
+    );
+  }
+
+  drawBackground(0);
+  drawPowerups();
+  drawObstacles();
+  drawPlayer();
+  drawParticles();
+
+  ctx.restore();
+}
+
+function loop(timestamp) {
+  if (!lastTime) lastTime = timestamp;
+
+  const dt = Math.min((timestamp - lastTime) / 1000, .05);
+  lastTime = timestamp;
+
+  update(dt);
+  draw();
+
+  requestAnimationFrame(loop);
+}
+
+// Initial screen
+selectMode("Easy");
+showReadyMessage();
+updateHUD();
+requestAnimationFrame(loop);
+</script>
+
+</body>
+</html>
